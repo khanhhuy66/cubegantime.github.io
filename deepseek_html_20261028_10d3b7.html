@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEXUS Timer — Rubik Smart Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===================== RESET ===================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#05070c;
+  --bg2:#080b12;
+  --glass:rgba(255,255,255,.035);
+  --glass-2:rgba(255,255,255,.055);
+  --border:rgba(255,255,255,.08);
+  --border-2:rgba(255,255,255,.14);
+  --text:#e9eef7;
+  --muted:#7d8aa0;
+  --dim:#4d5769;
+  --cyan:#00e5ff;
+  --purple:#b14bff;
+  --pink:#ff2d92;
+  --green:#00ff9d;
+  --yellow:#ffcc00;
+  --orange:#ff9d00;
+  --red:#ff4d6d;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --radius:22px;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  overflow-x:hidden;
+  user-select:none;-webkit-user-select:none;
+  -webkit-font-smoothing:antialiased;
+  position:relative;
+}
+
+/* ===================== BACKGROUND ===================== */
+.bg-mesh{
+  position:fixed;inset:-10%;
+  z-index:-3;
+  background:
+    radial-gradient(55% 45% at 18% 22%, rgba(0,229,255,.20), transparent 60%),
+    radial-gradient(50% 45% at 82% 78%, rgba(177,75,255,.20), transparent 60%),
+    radial-gradient(40% 35% at 50% 50%, rgba(255,45,146,.10), transparent 60%);
+  filter:blur(30px);
+  animation:meshFloat 24s ease-in-out infinite alternate;
+  will-change:transform;
+}
+.bg-grid{
+  position:fixed;inset:0;
+  z-index:-2;
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(circle at 50% 35%, #000 30%, transparent 78%);
+  -webkit-mask-image:radial-gradient(circle at 50% 35%, #000 30%, transparent 78%);
+  pointer-events:none;
+}
+.bg-vignette{
+  position:fixed;inset:0;
+  z-index:-1;
+  background:radial-gradient(circle at 50% 40%, transparent 40%, rgba(0,0,0,.55) 100%);
+  pointer-events:none;
+}
+@keyframes meshFloat{
+  0%   { transform:translate(0,0) scale(1); }
+  50%  { transform:translate(3%,-2%) scale(1.06); }
+  100% { transform:translate(-2%,3%) scale(1.02); }
+}
+
+/* ===================== LAYOUT ===================== */
+.app{
+  width:100%;max-width:920px;margin:0 auto;
+  padding:18px 16px 60px;
+  display:flex;flex-direction:column;gap:16px;
+  position:relative;z-index:1;
+}
+
+/* ===================== GLASS CARD BASE ===================== */
+.glass{
+  position:relative;
+  background:linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+  backdrop-filter:blur(22px) saturate(140%);
+  -webkit-backdrop-filter:blur(22px) saturate(140%);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.glass::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(135deg, rgba(0,229,255,.35), transparent 35%, transparent 65%, rgba(177,75,255,.35));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;opacity:.7;
+}
+
+/* ===================== HEADER ===================== */
+header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:2px 4px;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:38px;height:38px;border-radius:11px;
+  background:conic-gradient(from 180deg, var(--cyan), var(--purple), var(--pink), var(--cyan));
+  display:grid;place-items:center;
+  box-shadow:0 0 24px -4px rgba(0,229,255,.55), inset 0 0 0 1px rgba(255,255,255,.2);
+  animation:spin 14s linear infinite;
+}
+.brand-mark::after{
+  content:"";width:16px;height:16px;border-radius:4px;
+  background:var(--bg);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25);
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.brand-txt{display:flex;flex-direction:column;line-height:1.15}
+.brand-txt b{font-size:1.05rem;font-weight:800;letter-spacing:.4px}
+.brand-txt span{font-size:.68rem;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase;font-weight:600}
+.header-actions{display:flex;gap:8px}
+
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;
+  background:var(--glass);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;display:grid;place-items:center;
+  font-size:1rem;transition:.18s;font-family:inherit;
+}
+.icon-btn:hover{color:var(--text);background:var(--glass-2);border-color:var(--border-2);transform:translateY(-1px)}
+.icon-btn.active{color:var(--cyan);border-color:rgba(0,229,255,.4);box-shadow:0 0 18px -6px rgba(0,229,255,.5)}
+.icon-btn.danger:hover{color:var(--red);border-color:rgba(255,77,109,.4)}
+
+/* ===================== SCRAMBLE ===================== */
+.scramble-card{padding:16px 20px}
+.scramble-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.scramble-head .lbl{
+  font-size:.66rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px;
+}
+.scramble-head .lbl::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 10px var(--cyan);
+  animation:pulseDot 1.8s ease-in-out infinite;
+}
+@keyframes pulseDot{50%{opacity:.35;transform:scale(.7)}}
+.regen{
+  background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:.7rem;font-family:inherit;padding:4px 8px;border-radius:8px;
+  transition:.18s;display:flex;align-items:center;gap:5px;
+}
+.regen:hover{color:var(--cyan);background:rgba(0,229,255,.08)}
+#scramble{
+  font-family:var(--mono);
+  font-size:clamp(.95rem,3.4vw,1.22rem);
+  font-weight:600;line-height:1.65;
+  letter-spacing:.02em;
+  color:#cfe3ff;
+  word-spacing:.18em;
+  text-align:center;
+  text-shadow:0 0 22px rgba(0,229,255,.15);
+}
+
+/* ===================== TIMER ===================== */
+.timer-card{
+  padding:34px 24px 22px;
+  text-align:center;
+  cursor:pointer;
+  touch-action:none;
+  transition:border-color .25s, box-shadow .3s, transform .2s;
+  position:relative;
+  min-height:250px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+}
+.timer-card:hover{border-color:var(--border-2)}
+body.inspecting .timer-card{border-color:rgba(255,204,0,.28)}
+body.ready .timer-card{
+  border-color:var(--green);
+  box-shadow:0 0 90px -10px rgba(0,255,157,.65), inset 0 0 60px -30px rgba(0,255,157,.4);
+  transform:scale(1.005);
+}
+body.running .timer-card{
+  border-color:rgba(0,229,255,.4);
+  animation:timerPulse 1.6s ease-in-out infinite;
+}
+body.pb-flash .timer-card{
+  animation:pbFlash .55s ease-in-out 3;
+}
+@keyframes timerPulse{
+  0%,100%{box-shadow:0 0 50px -12px rgba(0,229,255,.4)}
+  50%{box-shadow:0 0 90px -6px rgba(0,229,255,.75), inset 0 0 50px -20px rgba(0,229,255,.25)}
+}
+@keyframes pbFlash{
+  0%,100%{box-shadow:0 0 60px -10px rgba(0,255,157,.5)}
+  50%{box-shadow:0 0 120px 0 rgba(0,255,157,.95), inset 0 0 70px -20px rgba(0,255,157,.6);border-color:var(--green)}
+}
+
+/* ring */
+.inspect-ring{
+  position:absolute;top:50%;left:50%;
+  width:min(78vw,290px);height:min(78vw,290px);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  opacity:0;transition:opacity .35s;
+}
+body.inspecting .inspect-ring{opacity:1}
+.inspect-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.inspect-ring .bg-c{fill:none;stroke:rgba(255,255,255,.05);stroke-width:2}
+.inspect-ring .fg-c{
+  fill:none;stroke:url(#ringGrad);stroke-width:3;stroke-linecap:round;
+  filter:drop-shadow(0 0 6px rgba(255,204,0,.6));
+  transition:stroke .3s;
+}
+body.inspecting .ring-warn .fg-c{filter:drop-shadow(0 0 10px rgba(255,77,109,.85))}
+
+#time{
+  font-family:var(--mono);
+  font-size:clamp(3.6rem,17vw,7rem);
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;
+  color:var(--text);
+  transition:color .18s;
+  position:relative;z-index:1;
+  text-shadow:0 0 40px rgba(0,229,255,.08);
+}
+body.ready #time{
+  color:var(--green);
+  text-shadow:0 0 60px rgba(0,255,157,.75);
+}
+body.running #time{
+  color:#fff;
+  text-shadow:0 0 50px rgba(0,229,255,.45);
+}
+#time.warn{color:var(--yellow);text-shadow:0 0 40px rgba(255,204,0,.5)}
+#time.pen{color:var(--orange);text-shadow:0 0 40px rgba(255,157,0,.5)}
+#time.dnf{color:var(--red);text-shadow:0 0 40px rgba(255,77,109,.6)}
+
+#status{
+  margin-top:12px;min-height:20px;
+  font-size:.82rem;color:var(--muted);
+  letter-spacing:.3px;font-weight:500;
+  transition:color .18s;
+  position:relative;z-index:1;
+}
+body.ready #status{color:var(--green);font-weight:700;letter-spacing:1px}
+body.running #status{color:rgba(0,229,255,.9)}
+
+.hints{
+  margin-top:16px;
+  display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+  font-size:.68rem;color:var(--dim);
+  position:relative;z-index:1;
+}
+.hints span{display:flex;align-items:center;gap:6px}
+kbd{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  border-bottom-width:2px;
+  border-radius:6px;padding:2px 7px;
+  font-family:var(--mono);font-size:.66rem;color:#a9b6c9;
+  font-weight:600;
+}
+
+/* ===================== STATS GRID ===================== */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:10px;
+}
+@media(max-width:760px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:420px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat{
+  padding:14px 10px 12px;
+  text-align:center;
+  transition:transform .18s, border-color .2s;
+}
+.stat:hover{transform:translateY(-2px);border-color:var(--border-2)}
+.stat .lbl{
+  font-size:.6rem;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;font-weight:700;
+}
+.stat .v{
+  font-family:var(--mono);font-size:1.15rem;font-weight:700;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+}
+.v.best{color:var(--green);text-shadow:0 0 20px rgba(0,255,157,.35)}
+.v.worst{color:var(--red);text-shadow:0 0 20px rgba(255,77,109,.3)}
+.v.cyan{color:var(--cyan);text-shadow:0 0 20px rgba(0,229,255,.3)}
+.v.purple{color:#c78bff;text-shadow:0 0 20px rgba(177,75,255,.3)}
+.v.neutral{color:#cfd8e6}
+.v.warn{color:var(--orange)}
+
+/* ===================== SMART COACH ===================== */
+.smart{padding:20px}
+.smart-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;gap:12px;flex-wrap:wrap;
+}
+.smart-title{
+  display:flex;align-items:center;gap:10px;
+  font-size:.95rem;font-weight:800;letter-spacing:.3px;
+}
+.smart-title .ai{
+  width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(135deg, rgba(0,229,255,.25), rgba(177,75,255,.25));
+  border:1px solid rgba(0,229,255,.35);
+  display:grid;place-items:center;font-size:.85rem;
+  box-shadow:0 0 16px -4px rgba(0,229,255,.5);
+  animation:aiGlow 3s ease-in-out infinite;
+}
+@keyframes aiGlow{
+  0%,100%{box-shadow:0 0 16px -4px rgba(0,229,255,.5)}
+  50%{box-shadow:0 0 26px -2px rgba(177,75,255,.7)}
+}
+.smart-title small{
+  font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin-left:4px;
+}
+.score-wrap{display:flex;align-items:center;gap:10px}
+.score-ring{
+  --p:0;
+  width:52px;height:52px;border-radius:50%;
+  background:conic-gradient(var(--score-color,#00e5ff) calc(var(--p)*1%), rgba(255,255,255,.06) 0);
+  display:grid;place-items:center;
+  transition:--p .6s;
+  position:relative;
+  box-shadow:0 0 24px -6px var(--score-color,#00e5ff);
+}
+.score-ring::after{
+  content:"";position:absolute;inset:4px;border-radius:50%;
+  background:var(--bg2);
+}
+.score-val{
+  position:relative;z-index:1;
+  font-family:var(--mono);font-weight:800;font-size:.85rem;
+  color:var(--score-color,#00e5ff);
+}
+.score-label{display:flex;flex-direction:column;line-height:1.15}
+.score-label b{font-size:.75rem;font-weight:800;letter-spacing:.5px;color:var(--score-color,#00e5ff)}
+.score-label span{font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600}
+
+.smart-grid{
+  display:grid;
+  grid-template-columns:1.3fr 1fr 1fr;
+  gap:10px;
+  margin-bottom:14px;
+}
+@media(max-width:680px){.smart-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:460px){.smart-grid{grid-template-columns:1fr}}
+.mini{
+  background:rgba(255,255,255,.028);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px 14px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.mini .k{
+  font-size:.58rem;text-transform:uppercase;letter-spacing:1.3px;
+  color:var(--muted);font-weight:700;
+  display:flex;align-items:center;gap:6px;
+}
+.mini .val{font-family:var(--mono);font-weight:800;font-size:1.02rem;letter-spacing:-.01em}
+.mini .sub{font-size:.68rem;color:var(--dim);line-height:1.4}
+.mini canvas{width:100%;height:52px;display:block;margin-top:2px}
+
+.milestone-bar{
+  height:6px;border-radius:3px;
+  background:rgba(255,255,255,.06);
+  overflow:hidden;margin-top:4px;
+}
+.milestone-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg, var(--cyan), var(--purple));
+  transition:width .8s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 12px rgba(0,229,255,.6);
+}
+
+.tips-list{display:flex;flex-direction:column;gap:0}
+.tip{
+  display:flex;gap:12px;padding:12px 0;
+  border-bottom:1px solid rgba(255,255,255,.045);
+}
+.tip:last-child{border-bottom:none;padding-bottom:0}
+.tip:first-child{padding-top:0}
+.tip .ic{
+  font-size:1rem;line-height:1.4;width:24px;flex-shrink:0;text-align:center;
+}
+.tip .body{flex:1}
+.tip .tt{font-weight:700;font-size:.84rem;margin-bottom:3px;color:#e9eef7}
+.tip .tx{font-size:.78rem;color:#94a0b3;line-height:1.6}
+.tip .tx b{color:var(--cyan);font-weight:700}
+.tip .tx i{color:var(--green);font-style:normal;font-weight:700}
+
+/* ===================== HISTORY ===================== */
+.history{padding:18px}
+.history-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;gap:10px;flex-wrap:wrap;
+}
+.history-title{
+  display:flex;align-items:center;gap:9px;
+  font-size:.9rem;font-weight:800;letter-spacing:.3px;
+}
+.history-title .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--purple);box-shadow:0 0 12px var(--purple);
+}
+.history-title .cnt{
+  font-family:var(--mono);font-size:.72rem;color:var(--muted);
+  background:rgba(255,255,255,.05);padding:2px 8px;border-radius:8px;
+  border:1px solid var(--border);
+}
+.history-scroll{
+  max-height:400px;overflow-y:auto;padding-right:6px;
+  margin:0 -4px;
+}
+.history-scroll::-webkit-scrollbar{width:5px}
+.history-scroll::-webkit-scrollbar-track{background:transparent}
+.history-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+.history-scroll::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+
+.solve{
+  display:grid;
+  grid-template-columns:44px 90px auto 1fr 32px;
+  align-items:center;gap:10px;
+  padding:9px 10px;
+  border-radius:10px;
+  font-size:.82rem;
+  border:1px solid transparent;
+  transition:.15s;
+  animation:slideIn .3s ease;
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.solve:hover{background:rgba(255,255,255,.03);border-color:var(--border)}
+.solve .idx{
+  font-family:var(--mono);font-size:.68rem;color:var(--dim);
+  font-variant-numeric:tabular-nums;font-weight:600;
+}
+.solve .t{
+  font-family:var(--mono);font-weight:800;font-size:.88rem;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+  color:#cfd8e6;
+}
+.solve.best .t{color:var(--green);text-shadow:0 0 12px rgba(0,255,157,.4)}
+.solve.worst .t{color:var(--red);text-shadow:0 0 12px rgba(255,77,109,.35)}
+.solve .badge{
+  font-family:var(--mono);font-size:.58rem;font-weight:800;
+  padding:2px 7px;border-radius:6px;
+  background:rgba(255,204,0,.12);color:var(--yellow);
+  border:1px solid rgba(255,204,0,.3);
+  justify-self:start;
+}
+.solve .badge.dnf{background:rgba(255,77,109,.12);color:var(--red);border-color:rgba(255,77,109,.3)}
+.solve .scr{
+  font-family:var(--mono);font-size:.66rem;color:#5d6878;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  letter-spacing:.02em;
+}
+.solve .del{
+  background:none;border:none;color:#3f4757;cursor:pointer;
+  font-size:.85rem;width:26px;height:26px;border-radius:7px;
+  display:grid;place-items:center;transition:.15s;
+}
+.solve .del:hover{color:var(--red);background:rgba(255,77,109,.12)}
+
+.empty{
+  text-align:center;color:var(--dim);font-size:.82rem;
+  padding:30px 16px;line-height:1.7;
+}
+.empty b{color:var(--cyan)}
+
+.btn{
+  background:rgba(255,255,255,.05);border:1px solid var(--border);
+  color:#b8c3d4;border-radius:10px;padding:7px 14px;
+  font-size:.75rem;font-family:inherit;cursor:pointer;
+  transition:.15s;font-weight:600;
+}
+.btn:hover{background:rgba(255,255,255,.08);color:#fff;border-color:var(--border-2)}
+
+/* ===================== RESPONSIVE ===================== */
+@media(max-width:520px){
+  .app{padding:14px 12px 50px;gap:12px}
+  .timer-card{padding:26px 16px 18px;min-height:220px}
+  .hints{display:none}
+  .smart{padding:16px}
+  .history{padding:14px}
+  .scramble-card{padding:14px 16px}
+}
+
+/* ===================== REDUCED MOTION ===================== */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div class="bg-mesh"></div>
+<div class="bg-grid"></div>
+<div class="bg-vignette"></div>
+
+<!-- INSPECTION RING GRADIENT DEFS -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffcc00"/>
+      <stop offset="100%" stop-color="#ff9d00"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-txt">
+        <b>NEXUS</b>
+        <span>Rubik Smart Coach</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="soundBtn" title="Bật/tắt âm thanh">🔊</button>
+      <button class="icon-btn danger" id="clearBtn" title="Xóa toàn bộ dữ liệu">🗑</button>
+    </div>
+  </header>
+
+  <!-- SCRAMBLE -->
+  <section class="scramble-card glass">
+    <div class="scramble-head">
+      <div class="lbl">Scramble</div>
+      <button class="regen" id="regenBtn">↻ Tạo mới</button>
+    </div>
+    <div id="scramble">—</div>
+  </section>
+
+  <!-- TIMER -->
+  <section class="timer-card glass" id="timerArea">
+    <div class="inspect-ring" id="ring">
+      <svg viewBox="0 0 100 100">
+        <circle class="bg-c" cx="50" cy="50" r="47"/>
+        <circle class="fg-c" cx="50" cy="50" r="47" id="ringFg"/>
+      </svg>
+    </div>
+    <div id="time">0.00</div>
+    <div id="status">Nhấn SPACE để bắt đầu xem trước 15 giây</div>
+    <div class="hints">
+      <span><kbd>Space</kbd> xem đề</span>
+      <span><kbd>Space</kbd> giữ + thả</span>
+      <span><kbd>Space</kbd> dừng</span>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat glass"><div class="lbl">Best</div><div class="v best" id="stBest">—</div></div>
+    <div class="stat glass"><div class="lbl">Worst</div><div class="v worst" id="stWorst">—</div></div>
+    <div class="stat glass"><div class="lbl">Mean</div><div class="v neutral" id="stMean">—</div></div>
+    <div class="stat glass"><div class="lbl">Ao5</div><div class="v cyan" id="stAo5">—</div></div>
+    <div class="stat glass"><div class="lbl">Ao12</div><div class="v purple" id="stAo12">—</div></div>
+    <div class="stat glass"><div class="lbl">Std Dev</div><div class="v warn" id="stSd">—</div></div>
+  </div>
+
+  <!-- SMART COACH -->
+  <section class="smart glass">
+    <div class="smart-head">
+      <div class="smart-title">
+        <div class="ai">🤖</div>
+        Smart Coach <small>AI Analysis</small>
+      </div>
+      <div class="score-wrap">
+        <div class="score-label">
+          <b id="scoreTitle">—</b>
+          <span>Performance</span>
+        </div>
+        <div class="score-ring" id="scoreRing">
+          <div class="score-val" id="scoreVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="smart-grid">
+      <div class="mini">
+        <div class="k">📈 Xu hướng gần đây</div>
+        <canvas id="spark"></canvas>
+        <div class="sub" id="sparkSub">Chưa đủ dữ liệu</div>
+      </div>
+      <div class="mini">
+        <div class="k">🎯 Dự đoán lần tới</div>
+        <div class="val" id="predVal" style="color:var(--cyan)">—</div>
+        <div class="sub" id="predSub">Dựa trên exponential smoothing</div>
+      </div>
+      <div class="mini">
+        <div class="k">🏅 Cột mốc tiếp theo</div>
+        <div class="val" id="msVal" style="color:var(--purple)">—</div>
+        <div class="milestone-bar"><div class="milestone-fill" id="msFill" style="width:0%"></div></div>
+        <div class="sub" id="msSub">—</div>
+      </div>
+    </div>
+
+    <div class="tips-list" id="tipsList"></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="history glass">
+    <div class="history-head">
+      <div class="history-title">
+        <span class="dot"></span> Lịch sử solve
+        <span class="cnt" id="count">0</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn" id="exportBtn">Xuất JSON</button>
+      </div>
+    </div>
+    <div class="history-scroll" id="solveList"></div>
+  </section>
+
+</div>
+
+<script>
+/* =====================================================================
+   CONFIG
+   ===================================================================== */
+const KEY            = 'rubik_timer_solves_v1';
+const SOUND_KEY      = 'rubik_timer_sound';
+const INSPECT_MS     = 15000;
+const PENALTY_MS     = 2000;
+const HOLD_MS        = 420;
+const TIERS          = [6000, 8000, 10000, 12000, 15000, 17000, 22000, 30000, 45000, 60000];
+const RING_CIRC      = 2 * Math.PI * 47;
+
+/* =====================================================================
+   DOM
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const timeEl     = $('#time');
+const statusEl   = $('#status');
+const scrambleEl = $('#scramble');
+const timerArea  = $('#timerArea');
+const ringEl     = $('#ring');
+const ringFg     = $('#ringFg');
+const sparkEl    = $('#spark');
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+let state = 'idle';
+let solves = [];
+let scramble = '';
+let inspectStart = 0;
+let timerStart = 0;
+let holdTimeout = null;
+let holdActive = false;
+let holdReady = false;
+let rafId = null;
+let pendingPenalty = 0;
+let soundEnabled = true;
+let audioCtx = null;
+
+/* =====================================================================
+   SOUND
+   ===================================================================== */
+function loadSoundSetting(){
+  try{ soundEnabled = localStorage.getItem(SOUND_KEY) !== '0'; }catch(e){}
+  updateSoundBtn();
+}
+function updateSoundBtn(){
+  const b = $('#soundBtn');
+  b.textContent = soundEnabled ? '🔊' : '🔇';
+  b.classList.toggle('active', soundEnabled);
+}
+function beep(freq = 660, dur = .08, type = 'sine', vol = .05){
+  if (!soundEnabled) return;
+  try{
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur);
+  }catch(e){}
+}
+
+/* =====================================================================
+   FORMAT
+   ===================================================================== */
+function fmt(ms){
+  if (ms == null || ms === 'DNF') return 'DNF';
+  const cs = Math.floor(ms / 10);
+  const m  = Math.floor(cs / 6000);
+  const s  = Math.floor(cs / 100) % 60;
+  const c  = cs % 100;
+  return m > 0
+    ? `${m}:${String(s).padStart(2,'0')}.${String(c).padStart(2,'0')}`
+    : `${s}.${String(c).padStart(2,'0')}`;
+}
+const solveValue = s => s.penalty === 'DNF' ? Infinity : s.time + s.penalty;
+const displaySolve = s => s.penalty === 'DNF' ? 'DNF' : fmt(s.time + s.penalty);
+
+/* =====================================================================
+   SCRAMBLE
+   ===================================================================== */
+const FACES = ['R','L','U','D','F','B'];
+const AXIS  = { R:0,L:0,U:1,D:1,F:2,B:2 };
+const MODS  = ['', "'", '2'];
+function genScramble(len = 20){
+  const out = [];
+  let prevFace = '', prevAxis = -1, prevPrevAxis = -1;
+  while (out.length < len){
+    const f = FACES[Math.floor(Math.random()*6)];
+    if (f === prevFace) continue;
+    const ax = AXIS[f];
+    if (ax === prevAxis && ax === prevPrevAxis) continue;
+    out.push(f + MODS[Math.floor(Math.random()*3)]);
+    prevPrevAxis = prevAxis; prevAxis = ax; prevFace = f;
+  }
+  return out.join(' ');
+}
+
+/* =====================================================================
+   STORAGE
+   ===================================================================== */
+function load(){
+  try{ solves = JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ solves = []; }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(solves)); }catch(e){}
+}
+
+/* =====================================================================
+   STATS
+   ===================================================================== */
+function averageOf(n){
+  if (solves.length < n) return null;
+  const slice = solves.slice(-n).map(solveValue);
+  const sorted = [...slice].sort((a,b) => a - b);
+  const trimmed = sorted.slice(1, n - 1);
+  if (trimmed.some(v => v === Infinity)) return 'DNF';
+  return trimmed.reduce((a,b) => a + b, 0) / trimmed.length;
+}
+
+function getStats(){
+  const valid = solves.filter(s => s.penalty !== 'DNF').map(s => s.time + s.penalty);
+  const n = valid.length;
+  const best  = n ? Math.min(...valid) : null;
+  const worst = n ? Math.max(...valid) : null;
+  const mean  = n ? valid.reduce((a,b) => a+b, 0) / n : null;
+  let sd = null;
+  if (n > 1) sd = Math.sqrt(valid.reduce((a,b) => a + (b-mean)**2, 0) / n);
+  return { valid, n, best, worst, mean, sd, ao5: averageOf(5), ao12: averageOf(12) };
+}
+
+/* =====================================================================
+   SMART SCORE
+   ===================================================================== */
+function computeScore(stats){
+  if (stats.n === 0) return null;
+  const speed = Math.max(0, Math.min(100, 100 - Math.log10(stats.best / 1000) * 32));
+  const cv = stats.sd / stats.mean;
+  const consistency = Math.max(0, Math.min(100, 100 - cv * 250));
+  const volume = Math.min(100, stats.n * 4);
+  let trend = 50;
+  const v = stats.valid;
+  if (v.length >= 10){
+    const last5 = v.slice(-5).reduce((a,b) => a+b, 0) / 5;
+    const prev5 = v.slice(-10,-5).reduce((a,b) => a+b, 0) / 5;
+    const diff = (prev5 - last5) / prev5;
+    trend = Math.max(0, Math.min(100, 50 + diff * 500));
+  }
+  const score = speed * .35 + consistency * .25 + volume * .15 + trend * .25;
+  return Math.round(score);
+}
+function scoreColor(s){
+  if (s == null) return '#7d8aa0';
+  if (s >= 80) return '#00ff9d';
+  if (s >= 60) return '#00e5ff';
+  if (s >= 40) return '#ffcc00';
+  if (s >= 20) return '#ff9d00';
+  return '#ff4d6d';
+}
+function scoreTitle(s){
+  if (s == null) return 'Chưa có dữ liệu';
+  if (s >= 80) return 'ELITE';
+  if (s >= 60) return 'ADVANCED';
+  if (s >= 40) return 'INTERMEDIATE';
+  if (s >= 20) return 'BEGINNER';
+  return 'ROOKIE';
+}
+
+/* =====================================================================
+   PREDICTION & MILESTONE
+   ===================================================================== */
+function predictNext(values){
+  if (!values.length) return null;
+  const alpha = 0.3;
+  let s = values[0];
+  for (let i = 1; i < values.length; i++){
+    s = alpha * values[i] + (1 - alpha) * s;
+  }
+  return s;
+}
+function getNextMilestone(best){
+  if (!best) return null;
+  const reversed = [...TIERS].reverse();
+  const next = reversed.find(t => t < best);
+  if (!next) return null;
+  const prev = reversed.find(t => t >= best);
+  const base = prev || TIERS[TIERS.length - 1] * 1.5;
+  const progress = Math.max(0, Math.min(1, (base - best) / (base - next)));
+  return { target: next, remaining: best - next, progress };
+}
+function getStreak(){
+  let s = 0;
+  for (let i = solves.length - 1; i >= 0; i--){
+    if (solves[i].penalty === 'DNF') break;
+    s++;
+  }
+  return s;
+}
+
+/* =====================================================================
+   SPARKLINE
+   ===================================================================== */
+function drawSparkline(values){
+  const canvas = sparkEl;
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0) return;
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (values.length < 2){
+    ctx.fillStyle = 'rgba(255,255,255,.2)';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Cần ≥ 2 lần solve', w/2, h/2 + 4);
+    return;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pad = 5;
+
+  const pts = values.map((v,i) => [
+    pad + (i / (values.length - 1)) * (w - pad*2),
+    h - pad - ((v - min) / range) * (h - pad*2)
+  ]);
+
+  // area fill
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], h);
+  pts.forEach(p => ctx.lineTo(p[0], p[1]));
+  ctx.lineTo(pts[pts.length-1][0], h);
+  ctx.closePath();
+  const areaGrad = ctx.createLinearGradient(0, 0, 0, h);
+  areaGrad.addColorStop(0, 'rgba(0,229,255,.22)');
+  areaGrad.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = areaGrad;
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  pts.forEach((p,i) => { if (i > 0) ctx.lineTo(p[0], p[1]); });
+  const lineGrad = ctx.createLinearGradient(0, 0, w, 0);
+  lineGrad.addColorStop(0, '#00e5ff');
+  lineGrad.addColorStop(1, '#b14bff');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // small dots
+  pts.forEach((p,i) => {
+    if (i === pts.length - 1) return;
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], 1.8, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,229,255,.55)';
+    ctx.fill();
+  });
+
+  // last point glow
+  const last = pts[pts.length - 1];
+  ctx.beginPath();
+  ctx.arc(last[0], last[1], 4, 0, Math.PI*2);
+  ctx.fillStyle = '#00e5ff';
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = '#00e5ff';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function renderStats(){
+  const s = getStats();
+  const set = (id, v) => {
+    $(id).textContent = v == null ? '—' : (typeof v === 'number' ? fmt(v) : v);
+  };
+  set('#stBest',  s.best);
+  set('#stWorst', s.worst);
+  set('#stMean',  s.mean);
+  set('#stAo5',   s.ao5);
+  set('#stAo12',  s.ao12);
+  set('#stSd',    s.sd);
+}
+
+function renderSmart(){
+  const s = getStats();
+  const score = computeScore(s);
+
+  // score ring
+  const color = scoreColor(score);
+  const ring = $('#scoreRing');
+  ring.style.setProperty('--p', score || 0);
+  ring.style.setProperty('--score-color', color);
+  $('#scoreVal').textContent = score == null ? '—' : score;
+  $('#scoreTitle').textContent = scoreTitle(score);
+  $('#scoreTitle').style.color = color;
+
+  // sparkline
+  const last20 = s.valid.slice(-20);
+  drawSparkline(last20);
+
+  const sparkSub = $('#sparkSub');
+  if (last20.length >= 2){
+    const diff = last20[last20.length-1] - last20[0];
+    if (diff < 0) sparkSub.innerHTML = `<span style="color:var(--green)">↓ nhanh hơn ${fmt(Math.abs(diff))}</span> so với ${last20.length} lần`;
+    else if (diff > 0) sparkSub.innerHTML = `<span style="color:var(--red)">↑ chậm hơn ${fmt(diff)}</span> so với ${last20.length} lần`;
+    else sparkSub.textContent = `Ổn định qua ${last20.length} lần`;
+  } else {
+    sparkSub.textContent = 'Chưa đủ dữ liệu';
+  }
+
+  // prediction
+  const pred = predictNext(s.valid);
+  $('#predVal').textContent = pred == null ? '—' : fmt(pred);
+  if (pred != null && s.valid.length >= 3){
+    const last = s.valid[s.valid.length - 1];
+    const delta = pred - last;
+    $('#predSub').innerHTML = delta < 0
+      ? `<span style="color:var(--green)">↓ ${fmt(Math.abs(delta))}</span> so với lần cuối`
+      : delta > 0
+        ? `<span style="color:var(--orange)">↑ ${fmt(delta)}</span> so với lần cuối`
+        : 'Cân bằng';
+  } else {
+    $('#predSub').textContent = 'Dựa trên exponential smoothing';
+  }
+
+  // milestone
+  const ms = getNextMilestone(s.best);
+  if (ms){
+    $('#msVal').textContent = fmt(ms.target);
+    $('#msFill').style.width = (ms.progress * 100).toFixed(1) + '%';
+    $('#msSub').textContent = `Còn ${fmt(ms.remaining)} để chạm mốc`;
+  } else if (s.best){
+    $('#msVal').textContent = '🏆 MAX';
+    $('#msFill').style.width = '100%';
+    $('#msSub').textContent = 'Bạn đã đạt cấp cao nhất';
+  } else {
+    $('#msVal').textContent = '—';
+    $('#msFill').style.width = '0%';
+    $('#msSub').textContent = 'Chưa có dữ liệu';
+  }
+
+  renderTips(s);
+}
+
+function renderTips(s){
+  const box = $('#tipsList');
+  if (solves.length === 0){
+    box.innerHTML = `<div class="empty">Chưa có dữ liệu. Nhấn <b>Space</b> để bắt đầu solve đầu tiên — Smart Coach sẽ phân tích sau khi bạn có ít nhất 3 lần solve.</div>`;
+    return;
+  }
+
+  const tips = [];
+
+  // 1. Consistency
+  if (s.sd != null && s.mean){
+    const cv = s.sd / s.mean;
+    if (cv > .25){
+      tips.push({ic:'⚠️', tt:'Độ ổn định thấp',
+        tx:`Độ lệch chuẩn <b>${fmt(s.sd)}</b> (~${(cv*100).toFixed(0)}% trung bình). Các lần solve chênh lệch rất lớn — bạn đang bị "khựng" ở một bước nào đó. Hãy solve chậm mà chắc, giảm tốc để không phải dừng suy nghĩ.`});
+    } else if (cv > .15){
+      tips.push({ic:'📊', tt:'Độ ổn định trung bình',
+        tx:`Độ lệch chuẩn <b>${fmt(s.sd)}</b> (~${(cv*100).toFixed(0)}%). Khá ổn nhưng vẫn dao động. Cố gắng giữ nhịp độ đều giữa các lần solve.`});
+    } else {
+      tips.push({ic:'✅', tt:'Độ ổn định tốt',
+        tx:`Độ lệch chuẩn chỉ <b>${fmt(s.sd)}</b> (~${(cv*100).toFixed(0)}%) — rất đều tay. Giờ có thể tập tăng tốc độ.`});
+    }
+  }
+
+  // 2. Trend
+  const v = s.valid;
+  if (v.length >= 10){
+    const last5 = v.slice(-5).reduce((a,b)=>a+b,0) / 5;
+    const prev5 = v.slice(-10,-5).reduce((a,b)=>a+b,0) / 5;
+    const diff  = (prev5 - last5) / prev5;
+    if (diff > .05){
+      tips.push({ic:'🚀', tt:'Đang tiến bộ rõ rệt',
+        tx:`5 lần gần nhất nhanh hơn <i>${(diff*100).toFixed(1)}%</i> so với 5 lần trước (<b>${fmt(last5)}</b> vs <b>${fmt(prev5)}</b>). Tiếp tục duy trì phong độ này!`});
+    } else if (diff < -.05){
+      tips.push({ic:'📉', tt:'Đang chậm lại',
+        tx:`5 lần gần nhất chậm hơn <b>${(Math.abs(diff)*100).toFixed(1)}%</b> so với trước (<b>${fmt(last5)}</b> vs <b>${fmt(prev5)}</b>). Có thể bạn đang mệt. Nghỉ 1–2 phút rồi solve chậm lại cho chuẩn.`});
+    } else {
+      tips.push({ic:'➖', tt:'Phong độ đi ngang',
+        tx:`Trung bình 5 lần gần nhất <b>${fmt(last5)}</b>, gần như không đổi. Muốn phá ngưỡng này cần học thêm công thức hoặc luyện look-ahead.`});
+    }
+  }
+
+  // 3. Speed tier
+  const b = s.best;
+  if (b != null){
+    let tt, tx;
+    if (b > 60000){
+      tt = 'Mục tiêu: phá mốc 1 phút';
+      tx = 'Tập trung vào Cross + F2L cơ bản thật chắc, thuộc lòng 4 công thức PLL đầu tiên (T-perm, Y-perm, Ua, Ub). <b>Đừng học OLL vội.</b>';
+    } else if (b > 40000){
+      tt = 'Mục tiêu: phá mốc 40 giây';
+      tx = 'Luyện F2L không nhìn (tìm cặp trước khi xoay), giảm số lần quay tay thừa. Học thêm 6–8 PLL nữa.';
+    } else if (b > 25000){
+      tt = 'Mục tiêu: phá mốc 25 giây';
+      tx = 'Học full PLL (21 công thức) và bắt đầu look-ahead trong F2L. Tập nhìn cặp kế tiếp khi đang xoay cặp hiện tại.';
+    } else if (b > 15000){
+      tt = 'Mục tiêu: phá mốc 15 giây';
+      tx = 'Học full OLL, tối ưu F2L (giảm move), luyện cross dưới 2 giây. Chú ý finger-trick và tận dụng cả hai tay.';
+    } else {
+      tt = 'Trình độ cao 🏆';
+      tx = 'Luyện one-look PLL, tối ưu cross (X-cross), giảm pause bằng cách quay chậm có kiểm soát và quay video để soi điểm khựng.';
+    }
+    tips.push({ic:'🎯', tt, tx});
+  }
+
+  // 4. DNF / +2
+  const dnfCount  = solves.filter(x => x.penalty === 'DNF').length;
+  const plus2Count = solves.filter(x => x.penalty === PENALTY_MS).length;
+  if (dnfCount > 0 || plus2Count > 0){
+    tips.push({ic:'⏱️', tt:'Cẩn thận phần xem trước',
+      tx:`Bạn có <b>${plus2Count}</b> lần bị +2 và <b>${dnfCount}</b> lần DNF. Hãy dùng 15s xem trước để lên kế hoạch Cross hoàn chỉnh, và giữ Space sớm hơn một chút để không bị trễ giờ.`});
+  }
+
+  // 5. Streak
+  const streak = getStreak();
+  if (streak >= 5 && dnfCount === 0){
+    tips.push({ic:'🔥', tt:`Chuỗi ${streak} lần không DNF`,
+      tx:'Bạn đang giữ phong độ cực kỳ ổn định. Hãy thử thách bản thân bằng cách giảm thời gian inspection xuống còn 10–12 giây để tăng áp lực luyện tập.'});
+  }
+
+  box.innerHTML = tips.map(t => `
+    <div class="tip">
+      <div class="ic">${t.ic}</div>
+      <div class="body">
+        <div class="tt">${t.tt}</div>
+        <div class="tx">${t.tx}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderHistory(){
+  const box = $('#solveList');
+  $('#count').textContent = solves.length;
+
+  if (solves.length === 0){
+    box.innerHTML = `<div class="empty">Chưa có lần solve nào.<br>Nhấn <b>SPACE</b> để bắt đầu!</div>`;
+    return;
+  }
+
+  const valid = solves.filter(s => s.penalty !== 'DNF').map(solveValue);
+  const bestVal  = valid.length ? Math.min(...valid) : null;
+  const worstVal = valid.length ? Math.max(...valid) : null;
+
+  const html = [];
+  for (let i = solves.length - 1; i >= 0; i--){
+    const s = solves[i];
+    const v = solveValue(s);
+    let cls = '';
+    if (v !== Infinity && valid.length > 1){
+      if (v === bestVal)  cls = 'best';
+      if (v === worstVal) cls = 'worst';
+    }
+    let badge = '';
+    if (s.penalty === 'DNF')           badge = '<span class="badge dnf">DNF</span>';
+    else if (s.penalty === PENALTY_MS)  badge = '<span class="badge">+2</span>';
+
+    html.push(`
+      <div class="solve ${cls}">
+        <span class="idx">#${i+1}</span>
+        <span class="t">${displaySolve(s)}</span>
+        ${badge || '<span></span>'}
+        <span class="scr" title="${s.scramble}">${s.scramble}</span>
+        <button class="del" data-i="${i}" title="Xóa">✕</button>
+      </div>`);
+  }
+  box.innerHTML = html.join('');
+}
+
+function render(){
+  renderStats();
+  renderSmart();
+  renderHistory();
+}
+
+/* =====================================================================
+   TIMER CONTROL
+   ===================================================================== */
+function pressStart(){
+  if (state === 'idle')            startInspection();
+  else if (state === 'inspection') beginHold();
+  else if (state === 'running')    stopTimer();
+}
+function pressEnd(){
+  if (state === 'inspection') endHold();
+}
+
+function startInspection(){
+  state = 'inspection';
+  inspectStart = performance.now();
+  pendingPenalty = 0;
+  document.body.classList.add('inspecting');
+  ringEl.classList.remove('ring-warn');
+  timeEl.className = '';
+  timeEl.textContent = '15';
+  statusEl.textContent = 'Đang xem trước... giữ SPACE khi sẵn sàng';
+  beep(520, .06, 'sine', .04);
+  tick();
+}
+
+function beginHold(){
+  if (state !== 'inspection' || holdActive) return;
+  holdActive = true;
+  holdReady = false;
+  statusEl.textContent = 'Giữ...';
+  clearTimeout(holdTimeout);
+  holdTimeout = setTimeout(() => {
+    holdReady = true;
+    document.body.classList.add('ready');
+    statusEl.textContent = 'THẢ ĐỂ BẮT ĐẦU';
+    beep(880, .09, 'sine', .06);
+  }, HOLD_MS);
+}
+
+function endHold(){
+  if (!holdActive) return;
+  holdActive = false;
+  clearTimeout(holdTimeout);
+  document.body.classList.remove('ready');
+  if (holdReady){
+    holdReady = false;
+    startTimer();
+  } else {
+    statusEl.textContent = 'Giữ lâu hơn một chút rồi thả';
+  }
+}
+
+function startTimer(){
+  const elapsed = performance.now() - inspectStart;
+  pendingPenalty = elapsed > (INSPECT_MS + PENALTY_MS)
+      ? 'DNF'
+      : (elapsed > INSPECT_MS ? PENALTY_MS : 0);
+
+  document.body.classList.remove('inspecting', 'ready');
+  document.body.classList.add('running');
+
+  state = 'running';
+  timeEl.className = '';
+  timeEl.textContent = '0.00';
+  statusEl.textContent = 'Đang chạy... nhấn SPACE để dừng';
+  timerStart = performance.now();
+  beep(1040, .1, 'triangle', .05);
+  tick();
+}
+
+function tick(){
+  if (state === 'inspection'){
+    const elapsed = performance.now() - inspectStart;
+    const remain  = INSPECT_MS - elapsed;
+
+    // update ring
+    const offset = RING_CIRC * (1 - Math.max(0, Math.min(1, remain / INSPECT_MS)));
+    ringFg.style.strokeDasharray  = RING_CIRC;
+    ringFg.style.strokeDashoffset = offset;
+
+    if (remain > 0){
+      timeEl.textContent = Math.ceil(remain / 1000);
+      timeEl.className = remain <= 3000 ? 'warn' : '';
+      if (remain <= 3000){
+        statusEl.textContent = 'Sắp hết giờ xem trước!';
+        ringEl.classList.add('ring-warn');
+      }
+    } else if (remain > -PENALTY_MS){
+      timeEl.textContent = '+2';
+      timeEl.className = 'pen';
+      statusEl.textContent = 'Quá 15s → phạt +2s (quá 17s là DNF)';
+      ringEl.classList.add('ring-warn');
+    } else {
+      timeEl.textContent = 'DNF';
+      timeEl.className = 'dnf';
+      statusEl.textContent = 'Quá 17s → DNF, nhưng vẫn có thể bấm giờ';
+      ringEl.classList.add('ring-warn');
+    }
+  } else if (state === 'running'){
+    timeEl.textContent = fmt(performance.now() - timerStart);
+  }
+  if (state !== 'idle') rafId = requestAnimationFrame(tick);
+}
+
+function stopTimer(){
+  const elapsed = performance.now() - timerStart;
+  cancelAnimationFrame(rafId);
+  document.body.classList.remove('running');
+
+  // detect new PB
+  const prevBest = solves.filter(s => s.penalty !== 'DNF').reduce((m, s) => Math.min(m, s.time + s.penalty), Infinity);
+  const finalVal = pendingPenalty === 'DNF' ? Infinity : elapsed + pendingPenalty;
+  const isPB = finalVal < prevBest && finalVal !== Infinity;
+
+  const solve = {
+    time: Math.round(elapsed),
+    penalty: pendingPenalty,
+    scramble,
+    date: Date.now()
+  };
+  solves.push(solve);
+  save();
+
+  state = 'idle';
+  pendingPenalty = 0;
+
+  timeEl.textContent = displaySolve(solve);
+  timeEl.className = solve.penalty === 'DNF' ? 'dnf' : (solve.penalty ? 'pen' : '');
+
+  if (isPB){
+    statusEl.textContent = '🏆 KỶ LỤC MỚI! Nhấn SPACE để tiếp tục';
+    document.body.classList.add('pb-flash');
+    setTimeout(() => document.body.classList.remove('pb-flash'), 1800);
+    beep(1200, .12, 'sine', .07);
+    setTimeout(() => beep(1600, .18, 'sine', .07), 120);
+  } else {
+    statusEl.textContent = solve.penalty === 'DNF'
+      ? 'DNF đã lưu. Nhấn SPACE để tiếp tục'
+      : (solve.penalty ? 'Đã lưu (+2). Nhấn SPACE để tiếp tục' : '✔ Đã lưu thành tích! Nhấn SPACE để tiếp tục');
+    beep(660, .08, 'sine', .05);
+  }
+
+  newScramble();
+  render();
+}
+
+/* =====================================================================
+   EXPORT
+   ===================================================================== */
+function exportJSON(){
+  if (solves.length === 0){
+    alert('Chưa có dữ liệu để xuất.');
+    return;
+  }
+  const data = {
+    exportedAt: new Date().toISOString(),
+    count: solves.length,
+    stats: (() => {
+      const s = getStats();
+      return { best: s.best, worst: s.worst, mean: s.mean, ao5: s.ao5, ao12: s.ao12, stdDev: s.sd };
+    })(),
+    solves
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nexus-timer-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+function newScramble(){
+  scramble = genScramble(20);
+  scrambleEl.textContent = scramble;
+}
+
+// keyboard
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' && e.key !== ' ') return;
+  e.preventDefault();
+  if (e.repeat) return;
+  pressStart();
+});
+document.addEventListener('keyup', e => {
+  if (e.code !== 'Space' && e.key !== ' ') return;
+  e.preventDefault();
+  pressEnd();
+});
+
+// pointer (tap + hold) on timer
+timerArea.addEventListener('pointerdown', e => {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  timerArea.setPointerCapture?.(e.pointerId);
+  pressStart();
+});
+timerArea.addEventListener('pointerup', e => {
+  e.preventDefault();
+  pressEnd();
+});
+timerArea.addEventListener('pointercancel', () => pressEnd());
+
+// scramble regen
+$('#regenBtn').addEventListener('click', () => {
+  newScramble();
+  beep(720, .05, 'sine', .03);
+});
+
+// delete single solve
+$('#solveList').addEventListener('click', e => {
+  const btn = e.target.closest('.del');
+  if (!btn) return;
+  const i = Number(btn.dataset.i);
+  solves.splice(i, 1);
+  save();
+  render();
+});
+
+// clear all
+$('#clearBtn').addEventListener('click', () => {
+  if (solves.length === 0) return;
+  if (!confirm('Xóa toàn bộ thành tích đã lưu?')) return;
+  solves = [];
+  save();
+  render();
+  timeEl.textContent = '0.00';
+  timeEl.className = '';
+  statusEl.textContent = 'Nhấn SPACE để bắt đầu xem trước 15 giây';
+});
+
+// export
+$('#exportBtn').addEventListener('click', exportJSON);
+
+// sound toggle
+$('#soundBtn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  try{ localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); }catch(e){}
+  updateSoundBtn();
+  if (soundEnabled) beep(880, .08, 'sine', .05);
+});
+
+// redraw sparkline on resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    const s = getStats();
+    drawSparkline(s.valid.slice(-20));
+  }, 150);
+});
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+loadSoundSetting();
+load();
+newScramble();
+render();
+
+// draw sparkline after layout settled
+requestAnimationFrame(() => {
+  const s = getStats();
+  drawSparkline(s.valid.slice(-20));
+});
+</script>
+</body>
+</html>
